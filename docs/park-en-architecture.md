@@ -9,6 +9,12 @@
 
 ParkEn is a two-sided parking marketplace:
 
+> **Implementation override:** The original architecture recommended Clerk-managed
+> identity. The current backend implementation follows the explicit build
+> requirement for JWT authentication using an HS256 access token and Argon2
+> password hashing. This is the active backend contract until a future auth
+> migration is requested.
+
 - **Drivers** search for nearby parking, inspect availability and pricing, and reserve a space.
 - **Parking owners** publish and manage spaces, pricing, operating hours, and reservations.
 - **Operations users** moderate listings, resolve incidents, and audit reservations.
@@ -495,7 +501,14 @@ The assistant is constrained to ParkEn search, parking guidance, and the authent
 
 ### Identity provider
 
-Use **Clerk managed authentication** for sign-up, sign-in, email verification, OAuth providers, session management, and account recovery.
+The current backend uses application-managed JWT authentication for sign-up,
+sign-in, and protected API access. Passwords are hashed with Argon2 through
+`pwdlib`; raw passwords are never stored. Access tokens are short-lived HS256
+JWTs signed with `JWT_SECRET` (falling back to the managed `SESSION_SECRET`).
+
+The previous architecture recommended **Clerk managed authentication**. That
+recommendation is superseded for this implementation because JWT authentication
+was explicitly requested.
 
 The application stores:
 
@@ -503,7 +516,7 @@ The application stores:
 - A local profile for domain fields and operational status.
 - Local role assignments because ParkEn authorization is domain-specific.
 
-The application does **not** store passwords, refresh tokens, session cookies, or locally minted JWTs.
+The application does **not** store plaintext passwords, refresh tokens, or session cookies. It does issue short-lived access JWTs as required by the current backend contract.
 
 ### Web flow
 

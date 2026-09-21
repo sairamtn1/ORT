@@ -4,7 +4,7 @@ Architecture for a production-grade parking marketplace MVP: “Find. Reserve. P
 
 ## Run & Operate
 
-The current workspace contains the starter service and design artifacts only. The ParkEn target architecture is documented before implementation in `docs/park-en-architecture.md`; no product implementation has been started.
+The FastAPI backend implementation lives in `services/api`. The original Express starter artifact is preserved, but the managed API workflow now serves FastAPI from the ParkEn service.
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
 - `pnpm run typecheck` — full typecheck across all packages
@@ -30,11 +30,13 @@ The current workspace contains the starter service and design artifacts only. Th
 - `docs/park-en-er-diagram.mmd` — standalone Mermaid ER diagram
 - `artifacts/api-server` — existing starter API artifact; not yet converted to the ParkEn FastAPI target
 - `artifacts/mockup-sandbox` — existing reusable design/mockup artifact
+- `services/api/app` — FastAPI application, models, schemas, repositories, services, controllers, middleware, and error handling
+- `services/api/migrations` — Alembic migration environment and initial PostgreSQL schema migration
 
 ## Architecture decisions
 
 - PostgreSQL/PostGIS is the source of truth for inventory and reservations; Redis only accelerates short-lived coordination.
-- Clerk owns identity and sessions; ParkEn owns domain roles, ownership, listing moderation, and audit history.
+- The current backend uses application-managed HS256 JWT authentication with Argon2 password hashing; ParkEn owns domain roles and ownership rules.
 - Reservation overlap is prevented by a PostgreSQL exclusion constraint in addition to application transaction logic.
 - Mapbox and Gemini are isolated behind backend adapters; the browser never receives server credentials.
 - The first implementation deliberately excludes payment capture and multi-space inventory to keep reservation correctness shippable.
@@ -50,7 +52,7 @@ ParkEn connects drivers with approved parking-space owners. The planned MVP supp
 ## Gotchas
 
 - Do not treat the existing Express/Drizzle scaffold as the final ParkEn stack; it is preserved until implementation begins.
-- Do not add local password auth, locally minted JWTs, or direct client-to-database access.
+- Do not expose password hashes or JWT signing secrets; use the configured JWT secret contract and keep direct client-to-database access prohibited.
 - Do not use Redis as booking truth; a Redis outage must not permit duplicate confirmed reservations.
 - Store money as integer minor units and all timestamps as timezone-aware UTC values.
 
