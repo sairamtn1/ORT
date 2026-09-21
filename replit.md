@@ -1,8 +1,10 @@
-# [Project name]
+# ParkEn
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Architecture for a production-grade parking marketplace MVP: “Find. Reserve. Park.”
 
 ## Run & Operate
+
+The current workspace contains the starter service and design artifacts only. The ParkEn target architecture is documented before implementation in `docs/park-en-architecture.md`; no product implementation has been started.
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
 - `pnpm run typecheck` — full typecheck across all packages
@@ -14,31 +16,43 @@ _Replace the heading above with the project's name, and this line with one sente
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Target frontend: Next.js 15, TypeScript, Tailwind, shadcn/ui
+- Target API: FastAPI, Pydantic, SQLAlchemy 2, Alembic
+- Target database: PostgreSQL + PostGIS
+- Target identity: Clerk-managed authentication
+- Target maps: Mapbox
+- Target AI: Gemini through Replit AI Integrations
+- Target coordination: Redis for holds, rate limits, and jobs; PostgreSQL remains the reservation source of truth
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `docs/park-en-architecture.md` — complete system architecture, boundaries, API surface, auth, Docker, environment contract, and roadmap
+- `docs/park-en-er-diagram.mmd` — standalone Mermaid ER diagram
+- `artifacts/api-server` — existing starter API artifact; not yet converted to the ParkEn FastAPI target
+- `artifacts/mockup-sandbox` — existing reusable design/mockup artifact
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- PostgreSQL/PostGIS is the source of truth for inventory and reservations; Redis only accelerates short-lived coordination.
+- Clerk owns identity and sessions; ParkEn owns domain roles, ownership, listing moderation, and audit history.
+- Reservation overlap is prevented by a PostgreSQL exclusion constraint in addition to application transaction logic.
+- Mapbox and Gemini are isolated behind backend adapters; the browser never receives server credentials.
+- The first implementation deliberately excludes payment capture and multi-space inventory to keep reservation correctness shippable.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+ParkEn connects drivers with approved parking-space owners. The planned MVP supports geospatial search, availability-aware quotes, reservations, owner listing management, admin moderation, and a constrained Gemini parking assistant.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Architecture first; do not start application implementation until the user asks for the next phase.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Do not treat the existing Express/Drizzle scaffold as the final ParkEn stack; it is preserved until implementation begins.
+- Do not add local password auth, locally minted JWTs, or direct client-to-database access.
+- Do not use Redis as booking truth; a Redis outage must not permit duplicate confirmed reservations.
+- Store money as integer minor units and all timestamps as timezone-aware UTC values.
 
 ## Pointers
 

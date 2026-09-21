@@ -1,0 +1,159 @@
+erDiagram
+    USERS ||--o{ USER_ROLES : has
+    USERS ||--o{ USER_CONSENTS : grants
+    USERS ||--o{ PARKING_SPACES : owns
+    USERS ||--o{ RESERVATIONS : makes
+    USERS ||--o{ AUDIT_LOGS : acts
+    USERS ||--o{ NOTIFICATIONS : receives
+
+    PARKING_SPACES ||--o{ SPACE_PHOTOS : contains
+    PARKING_SPACES ||--o{ SPACE_AVAILABILITY_RULES : defines
+    PARKING_SPACES ||--o{ SPACE_BLACKOUTS : blocks
+    PARKING_SPACES ||--o{ SPACE_FEATURE_LINKS : supports
+    PARKING_SPACE_FEATURES ||--o{ SPACE_FEATURE_LINKS : classifies
+    PARKING_SPACES ||--o{ RESERVATION_HOLDS : receives
+    PARKING_SPACES ||--o{ RESERVATIONS : receives
+
+    RESERVATIONS ||--o{ RESERVATION_EVENTS : emits
+    RESERVATIONS ||--o| PAYMENTS : may_have
+    WEBHOOK_EVENTS ||--o{ AUDIT_LOGS : may_trigger
+
+    USERS {
+        uuid id PK
+        string clerk_subject UK
+        string email
+        string display_name
+        string phone_e164
+        string account_status
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    USER_ROLES {
+        uuid user_id FK
+        string role PK
+        timestamptz granted_at
+    }
+    USER_CONSENTS {
+        uuid id PK
+        uuid user_id FK
+        string consent_type
+        string policy_version
+        timestamptz granted_at
+    }
+    PARKING_SPACES {
+        uuid id PK
+        uuid owner_id FK
+        string title
+        text description
+        geography location
+        string address_line
+        string city
+        string postal_code
+        integer hourly_rate_minor
+        string currency
+        string status
+        string moderation_status
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    SPACE_PHOTOS {
+        uuid id PK
+        uuid space_id FK
+        string object_key
+        integer sort_order
+        string moderation_status
+    }
+    SPACE_AVAILABILITY_RULES {
+        uuid id PK
+        uuid space_id FK
+        integer weekday
+        time starts_local
+        time ends_local
+        string timezone
+    }
+    SPACE_BLACKOUTS {
+        uuid id PK
+        uuid space_id FK
+        timestamptz starts_at
+        timestamptz ends_at
+        string reason
+    }
+    PARKING_SPACE_FEATURES {
+        string code PK
+        string label
+    }
+    SPACE_FEATURE_LINKS {
+        uuid space_id FK
+        string feature_code FK
+    }
+    RESERVATION_HOLDS {
+        uuid id PK
+        uuid space_id FK
+        uuid driver_id FK
+        timestamptz starts_at
+        timestamptz ends_at
+        timestamptz expires_at
+        string status
+    }
+    RESERVATIONS {
+        uuid id PK
+        string public_reference UK
+        uuid space_id FK
+        uuid driver_id FK
+        timestamptz starts_at
+        timestamptz ends_at
+        integer total_minor
+        string currency
+        string status
+        string cancellation_reason
+        jsonb quote_snapshot
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    RESERVATION_EVENTS {
+        uuid id PK
+        uuid reservation_id FK
+        string event_type
+        jsonb payload
+        timestamptz occurred_at
+    }
+    PAYMENTS {
+        uuid id PK
+        uuid reservation_id FK
+        string provider
+        string provider_reference
+        integer amount_minor
+        string currency
+        string status
+        timestamptz created_at
+    }
+    NOTIFICATIONS {
+        uuid id PK
+        uuid user_id FK
+        string type
+        string channel
+        string status
+        jsonb payload
+        timestamptz sent_at
+    }
+    AUDIT_LOGS {
+        uuid id PK
+        uuid actor_id FK
+        string action
+        string entity_type
+        uuid entity_id
+        jsonb before_snapshot
+        jsonb after_snapshot
+        string request_id
+        timestamptz created_at
+    }
+    WEBHOOK_EVENTS {
+        uuid id PK
+        string provider
+        string provider_event_id UK
+        string payload_hash
+        string status
+        integer retry_count
+        timestamptz received_at
+        timestamptz processed_at
+    }

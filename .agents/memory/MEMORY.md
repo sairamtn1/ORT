@@ -1,0 +1,1 @@
+- [ParkEn architecture](park-en-architecture.md) — reservation correctness, Clerk identity, PostGIS search, and adapter boundaries are core design constraints.
