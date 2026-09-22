@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "ParkEn Web"
+description = "A premium parking marketplace frontend for drivers, parking owners, and administrators, connected to the existing ParkEn FastAPI backend."
+version = "1.0.0"
+id = "artifacts/parken-web"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25204
+
+[services.development]
+run = "pnpm --filter @workspace/parken-web run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/parken-web", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/parken-web/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25204"
+BASE_PATH = "/"
