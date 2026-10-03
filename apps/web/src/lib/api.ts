@@ -89,7 +89,8 @@ export interface CorporatePass {
   status: string;
 }
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace(/\/$/, "");
+const defaultApiUrl = process.env.NODE_ENV === "production" ? "/api/v1" : "http://localhost:8000/api/v1";
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? defaultApiUrl).replace(/\/$/, "");
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number) {

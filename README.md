@@ -44,6 +44,30 @@ pnpm install
 pnpm --filter @parken/web dev
 ```
 
+## Deploy the full stack on Vercel
+
+The root `vercel.json` deploys the Next.js frontend and FastAPI backend as
+Vercel Services in one project. API requests use the same-origin `/api/v1`
+route in production. Connect this GitHub repository to Vercel and deploy from
+the repository root.
+
+Before deploying, connect a PostgreSQL provider through the Vercel Marketplace
+and configure these project environment variables:
+
+- `DATABASE_URL` from the PostgreSQL integration.
+- `JWT_SECRET` with a random secret of at least 32 characters.
+- `APP_ENV=development` and `OTP_DEV_MODE=true` for a demo deployment. In this
+  mode, OTP codes are returned to the browser and visible to anyone requesting
+  a code; do not use this setting for real accounts or production data.
+- `CORS_ORIGINS` may remain at its default because the frontend proxies API
+  calls through the same Vercel deployment.
+
+After the first deployment, run the Alembic migrations and seed demo inventory
+once using the Vercel-provided `DATABASE_URL`. For real SMS verification,
+configure Twilio credentials and switch to `APP_ENV=production` and
+`OTP_DEV_MODE=false`. Vercel Services and external PostgreSQL integrations
+have separate plan and usage terms.
+
 Development OTP mode is deliberately limited to `APP_ENV=development` and
 returns a test code in the API response. Production requires Twilio credentials
 and `OTP_DEV_MODE=false`. `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` enables the
