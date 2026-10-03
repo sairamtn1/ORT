@@ -6,11 +6,16 @@ from fastapi import HTTPException, status
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models import Booking, BookingStatus, ParkingSlot, SlotStatus, User, UserRole
+from ..models import Booking, BookingStatus, LotStatus, ParkingLot, ParkingSlot, SlotStatus, User, UserRole
 from ..schemas import BookingCreate
 
 
-async def create_booking(db: AsyncSession, current_user: User, payload: BookingCreate) -> Booking:
+async def create_booking(
+    db: AsyncSession,
+    current_user: User,
+    payload: BookingCreate,
+    corporate_pass_id: uuid.UUID | None = None,
+) -> Booking:
     if current_user.role not in (UserRole.customer, UserRole.admin):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only customers can create bookings")
     if current_user.role != UserRole.admin and payload.customer_id != current_user.id:
@@ -24,6 +29,9 @@ async def create_booking(db: AsyncSession, current_user: User, payload: BookingC
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Parking slot not found")
     if slot.status != SlotStatus.available:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Parking slot is not available")
+    lot = await db.get(ParkingLot, slot.parking_lot_id)
+    if not lot or lot.status != LotStatus.active or lot.is_closed:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Parking location is not accepting reservations")
     conflict = await db.scalar(
         select(Booking.id).where(
             Booking.parking_slot_id == payload.parking_slot_id,
@@ -33,7 +41,7 @@ async def create_booking(db: AsyncSession, current_user: User, payload: BookingC
     )
     if conflict:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Parking slot is already booked")
-    booking = Booking(**payload.model_dump())
+    booking = Booking(**payload.model_dump(), corporate_pass_id=corporate_pass_id)
     db.add(booking)
     await db.commit()
     await db.refresh(booking)

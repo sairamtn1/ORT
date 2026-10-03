@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from .api.v1.auth import router as auth_router
 from .api.v1.crud import router as crud_router
 from .api.v1.health import router as health_router
+from .api.v1.operations import router as operations_router
 from .config import get_settings
 from .db import engine
 from .errors import AppError, app_error_handler, integrity_error_handler, validation_error_handler
@@ -37,7 +38,7 @@ async def _unexpected_error_handler(request, exc: Exception) -> JSONResponse:
 
 
 app = FastAPI(
-    title="ParkEn API",
+    title="ORT API",
     version="1.0.0",
     description="Parking discovery, inventory, booking, payment, review, and notification API.",
     docs_url="/api/docs",
@@ -61,6 +62,7 @@ app.add_exception_handler(IntegrityError, integrity_error_handler)
 app.include_router(health_router, prefix=settings.api_prefix)
 app.include_router(auth_router, prefix=settings.api_prefix)
 app.include_router(crud_router, prefix=settings.api_prefix)
+app.include_router(operations_router, prefix=settings.api_prefix)
 
 
 @app.get("/api/healthz", tags=["health"])

@@ -5,11 +5,19 @@ dist
 tmp
 out-tsc
 *.tsbuildinfo
+*.egg-info/
 .expo
 .expo-shared
 
 # dependencies
 node_modules
+.next/
+.env
+.env.*
+!.env.example
+services/api/.env
+apps/web/.env.local
+apps/web/.env.*.local
 
 # IDEs and editors
 /.idea

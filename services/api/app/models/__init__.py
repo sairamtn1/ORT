@@ -18,6 +18,15 @@ from .entities import (
     User,
     UserRole,
 )
+from .structure import ParkingLevel, ParkingZone
+from .operations import (
+    CorporatePass,
+    Incident,
+    OtpChallenge,
+    ParkingSession,
+    StaffAssignment,
+    Vehicle,
+)
 
 __all__ = [
     "Base",
@@ -38,4 +47,12 @@ __all__ = [
     "SlotStatus",
     "User",
     "UserRole",
+    "Incident",
+    "OtpChallenge",
+    "ParkingSession",
+    "StaffAssignment",
+    "Vehicle",
+    "CorporatePass",
+    "ParkingLevel",
+    "ParkingZone",
 ]

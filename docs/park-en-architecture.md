@@ -1,13 +1,13 @@
-# ParkEn — Production MVP Architecture
+# ORT — Production MVP Architecture
 
-**Product:** ParkEn  
+**Product:** ORT
 **Tagline:** Find. Reserve. Park.  
-**Document status:** Architecture only — no application implementation is defined here.  
+**Document status:** Living architecture reference. The current implementation is in `apps/web/` and `services/api/`; MVP workflows and integration boundaries are documented in `docs/park-en-mvp.md`.
 **Target audience:** Product, frontend, backend, data, DevOps, and security contributors.
 
 ## 0. Architecture summary
 
-ParkEn is a two-sided parking marketplace:
+ORT is a two-sided parking marketplace:
 
 > **Implementation override:** The original architecture recommended Clerk-managed
 > identity. The current backend implementation follows the explicit build
@@ -42,7 +42,7 @@ Browser
 ### Architectural principles
 
 1. **Reservation correctness over convenience.** Availability is enforced by PostgreSQL constraints and transactional service logic, not only by UI checks.
-2. **Identity belongs to Clerk.** ParkEn stores a stable Clerk subject and application profile data; it does not implement passwords, local login, or a second token system.
+2. **Identity belongs to Clerk.** ORT stores a stable Clerk subject and application profile data; it does not implement passwords, local login, or a second token system.
 3. **The API is the business boundary.** The browser never talks directly to PostgreSQL, Redis, Mapbox server APIs, or Gemini.
 4. **Geospatial search is first-class.** Use PostGIS for distance and bounding-box queries; use Mapbox for address resolution, map tiles, and route estimates.
 5. **Every write is auditable.** Reservation, listing, moderation, and role changes emit an audit event.
@@ -230,7 +230,7 @@ parken/
 
 #### Identity and access
 
-- `users`: ParkEn profile keyed by Clerk `subject`; display name, phone verification state, account status, timestamps.
+- `users`: ORT profile keyed by Clerk `subject`; display name, phone verification state, account status, timestamps.
 - `user_roles`: many-to-many role assignments; role values are `driver`, `owner`, `support`, `admin`.
 - `user_consents`: terms, privacy, marketing, and timestamped consent versions.
 
@@ -470,7 +470,7 @@ POST /api/v1/admin/users/{user_id}/suspend
 POST /api/v1/ai/parking-assistant
 ```
 
-The assistant is constrained to ParkEn search, parking guidance, and the authenticated user's visible data. It must not confirm a reservation, change a listing, or expose private data. Gemini receives minimized context and structured tool results rather than unrestricted database access.
+The assistant is constrained to ORT search, parking guidance, and the authenticated user's visible data. It must not confirm a reservation, change a listing, or expose private data. Gemini receives minimized context and structured tool results rather than unrestricted database access.
 
 #### Mapbox adapter boundaries
 
@@ -514,7 +514,7 @@ The application stores:
 
 - Clerk `sub` as the immutable `users.clerk_subject`.
 - A local profile for domain fields and operational status.
-- Local role assignments because ParkEn authorization is domain-specific.
+- Local role assignments because ORT authorization is domain-specific.
 
 The application does **not** store plaintext passwords, refresh tokens, or session cookies. It does issue short-lived access JWTs as required by the current backend contract.
 
@@ -647,7 +647,7 @@ NEXT_PUBLIC_ANALYTICS_ENABLED
 
 ```text
 APP_ENV=development|staging|production
-APP_NAME=ParkEn
+APP_NAME=ORT
 LOG_LEVEL=INFO
 API_PREFIX=/api/v1
 

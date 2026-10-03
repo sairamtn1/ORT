@@ -1,1 +1,1 @@
-- [ParkEn architecture](park-en-architecture.md) — reservation correctness, JWT auth, PostGIS search, and adapter boundaries are core design constraints.
+- [ORT architecture](park-en-architecture.md) — reservation correctness, JWT auth, PostGIS search, and adapter boundaries are core design constraints.

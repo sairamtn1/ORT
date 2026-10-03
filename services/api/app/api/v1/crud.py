@@ -13,10 +13,13 @@ from ...models import (
     AccountStatus,
     Admin,
     Booking,
+    BookingStatus,
     Notification,
     Owner,
     ParkingLot,
+    ParkingLevel,
     ParkingSlot,
+    ParkingZone,
     Payment,
     Review,
     User,
@@ -172,7 +175,10 @@ async def create_owner(
         raise HTTPException(status_code=403, detail="Owners can only create their own profile")
     if await db.scalar(select(Owner).where(Owner.user_id == payload.user_id)):
         raise HTTPException(status_code=409, detail="Owner profile already exists")
-    return await Repository(Owner, db).create(values(payload))
+    data = values(payload)
+    if not is_admin(current):
+        data["verified"] = False
+    return await Repository(Owner, db).create(data)
 
 
 @router.get("/owners/{owner_id}", response_model=OwnerRead, tags=["owners"])
@@ -194,7 +200,10 @@ async def update_owner(
     if not entity:
         raise HTTPException(status_code=404, detail="Owner not found")
     await ensure_owner_or_admin(db, current, owner_id)
-    return await Repository(Owner, db).update(entity, values(payload))
+    data = values(payload)
+    if not is_admin(current):
+        data.pop("verified", None)
+    return await Repository(Owner, db).update(entity, data)
 
 
 @router.delete("/owners/{owner_id}", status_code=204, tags=["owners"])
@@ -315,6 +324,16 @@ async def create_parking_slot(
     db: AsyncSession = Depends(get_db),
 ):
     await ensure_lot_access(db, current, payload.parking_lot_id)
+    if payload.zone_id and not payload.level_id:
+        raise HTTPException(status_code=422, detail="A zone must belong to a selected parking level")
+    if payload.level_id:
+        level = await db.get(ParkingLevel, payload.level_id)
+        if not level or level.parking_lot_id != payload.parking_lot_id:
+            raise HTTPException(status_code=422, detail="The level does not belong to this parking location")
+    if payload.zone_id:
+        zone = await db.get(ParkingZone, payload.zone_id)
+        if not zone or zone.parking_level_id != payload.level_id:
+            raise HTTPException(status_code=422, detail="The zone does not belong to the selected level")
     return await Repository(ParkingSlot, db).create(values(payload))
 
 
@@ -334,7 +353,20 @@ async def update_parking_slot(
     db: AsyncSession = Depends(get_db),
 ):
     entity = await ensure_slot_access(db, current, slot_id)
-    return await Repository(ParkingSlot, db).update(entity, values(payload))
+    data = values(payload)
+    level_id = data.get("level_id", entity.level_id)
+    zone_id = data.get("zone_id", entity.zone_id)
+    if zone_id and not level_id:
+        raise HTTPException(status_code=422, detail="A zone must belong to a selected parking level")
+    if level_id:
+        level = await db.get(ParkingLevel, level_id)
+        if not level or level.parking_lot_id != entity.parking_lot_id:
+            raise HTTPException(status_code=422, detail="The level does not belong to this parking location")
+    if zone_id:
+        zone = await db.get(ParkingZone, zone_id)
+        if not zone or zone.parking_level_id != level_id:
+            raise HTTPException(status_code=422, detail="The zone does not belong to the selected level")
+    return await Repository(ParkingSlot, db).update(entity, data)
 
 
 @router.delete("/parking-slots/{slot_id}", status_code=204, tags=["parking slots"])
@@ -380,7 +412,11 @@ async def update_booking(
     entity = await ensure_booking_access(db, current, booking_id)
     data = values(payload)
     if not is_admin(current) and current.role == UserRole.customer:
-        data = {key: value for key, value in data.items() if key == "status"}
+        if data.get("status") != BookingStatus.cancelled:
+            raise HTTPException(status_code=403, detail="Customers can only cancel their reservations")
+        if entity.status not in (BookingStatus.pending, BookingStatus.confirmed):
+            raise HTTPException(status_code=409, detail="This reservation can no longer be cancelled")
+        data = {"status": BookingStatus.cancelled}
     return await Repository(Booking, db).update(entity, data)
 
 

@@ -13,6 +13,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -22,6 +23,7 @@ from .base import Base, UUIDTimestampMixin
 
 class UserRole(str, enum.Enum):
     customer = "customer"
+    staff = "staff"
     owner = "owner"
     admin = "admin"
 
@@ -75,7 +77,7 @@ class User(UUIDTimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(150), nullable=False)
-    phone: Mapped[str | None] = mapped_column(String(32))
+    phone: Mapped[str | None] = mapped_column(String(32), unique=True, index=True)
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole, name="user_role"), default=UserRole.customer, nullable=False, index=True
     )
@@ -127,6 +129,19 @@ class ParkingLot(UUIDTimestampMixin, Base):
     latitude: Mapped[Decimal] = mapped_column(Numeric(9, 6), nullable=False)
     longitude: Mapped[Decimal] = mapped_column(Numeric(9, 6), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
+    parking_type: Mapped[str] = mapped_column(
+        String(24), default="mall", server_default="mall", nullable=False
+    )
+    parking_mode: Mapped[str] = mapped_column(
+        String(24), default="paid", server_default="paid", nullable=False
+    )
+    identification_method: Mapped[str] = mapped_column(
+        String(24), default="qr_code", server_default="qr_code", nullable=False
+    )
+    is_closed: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false"), nullable=False
+    )
+    closure_message: Mapped[str | None] = mapped_column(String(240))
     status: Mapped[LotStatus] = mapped_column(
         Enum(LotStatus, name="lot_status"), default=LotStatus.draft, nullable=False, index=True
     )
@@ -147,6 +162,21 @@ class ParkingSlot(UUIDTimestampMixin, Base):
     slot_number: Mapped[str] = mapped_column(String(40), nullable=False)
     vehicle_type: Mapped[str] = mapped_column(String(40), default="car", nullable=False)
     hourly_rate: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    category: Mapped[str] = mapped_column(
+        String(24), default="regular", server_default="regular", nullable=False
+    )
+    level_name: Mapped[str | None] = mapped_column(String(40))
+    zone_name: Mapped[str | None] = mapped_column(String(40))
+    level_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("parking_levels.id", ondelete="SET NULL", name="fk_parking_slots_level_id"),
+        index=True,
+    )
+    zone_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("parking_zones.id", ondelete="SET NULL", name="fk_parking_slots_zone_id"),
+        index=True,
+    )
     status: Mapped[SlotStatus] = mapped_column(
         Enum(SlotStatus, name="slot_status"), default=SlotStatus.available, nullable=False, index=True
     )
@@ -166,6 +196,11 @@ class Booking(UUIDTimestampMixin, Base):
     )
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    corporate_pass_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("corporate_passes.id", ondelete="SET NULL"),
+        index=True,
+    )
     total_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     status: Mapped[BookingStatus] = mapped_column(
         Enum(BookingStatus, name="booking_status"), default=BookingStatus.pending, nullable=False, index=True

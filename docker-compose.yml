@@ -1,0 +1,76 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-parken}
+      POSTGRES_USER: ${POSTGRES_USER:-parken}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-parken-local-only}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-parken} -d ${POSTGRES_DB:-parken}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - parken-postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-parken}:${POSTGRES_PASSWORD:-parken-local-only}@db:5432/${POSTGRES_DB:-parken}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in your environment}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      OTP_DEV_MODE: ${OTP_DEV_MODE:-true}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/healthz', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+        NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: ${NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN:-}
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: ${NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN:-}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+  seed:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    profiles: ["demo"]
+    command: ["python", "-m", "app.seed"]
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-parken}:${POSTGRES_PASSWORD:-parken-local-only}@db:5432/${POSTGRES_DB:-parken}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in your environment}
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  parken-postgres:

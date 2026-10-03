@@ -10,10 +10,10 @@ from ..security import create_access_token, hash_password, verify_password
 
 
 async def register_user(db: AsyncSession, payload: UserCreate) -> User:
-    if payload.role == UserRole.admin:
+    if payload.role in (UserRole.staff, UserRole.admin):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin accounts must be provisioned by an existing administrator",
+            detail="Staff and admin accounts must be provisioned by an existing administrator",
         )
     existing = await db.scalar(select(User).where(User.email == payload.email.lower()))
     if existing:
